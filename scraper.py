@@ -1,22 +1,15 @@
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify
-from flask_cors import CORS
+import json
 
 # The target URL for NFL standings from ESPN
 URL = "https://www.espn.com/nfl/standings"
-
-# Initialize Flask App
-app = Flask(__name__)
-# Enable CORS to allow the HTML page to fetch data from this server
-CORS(app)
 
 def scrape_nfl_standings():
     """
     Scrapes the NFL standings from ESPN and returns a structured dictionary.
     """
     try:
-        # Use headers to mimic a browser visit
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
@@ -27,23 +20,21 @@ def scrape_nfl_standings():
         
         standings = {'AFC': [], 'NFC': []}
         
-        # Find the two tables for AFC and NFC
         tables = soup.find_all('table', class_='standings')
 
         if not tables or len(tables) < 2:
-            return None # Return None if tables aren't found
+            print("Error: Standings tables not found.")
+            return None
 
         conference_names = ['AFC', 'NFC']
         for i, table in enumerate(tables):
             conference = conference_names[i]
-            rows = table.find('tbody').find_all('tr')
-            for row in rows:
-                # Team names are in a specific span within the first cell
+            # Find all rows in the table body, which contains team data
+            for row in table.find('tbody').find_all('tr'):
                 team_name_tag = row.find('span', class_='hide-mobile')
                 if team_name_tag:
                     team_name = team_name_tag.text.strip()
-                    
-                    # Stats are in the subsequent cells
+                    # All stats (W-L-T) are in separate `td` elements
                     stats = row.find_all('td')
                     if len(stats) > 3:
                         wins = stats[1].text.strip()
@@ -60,21 +51,16 @@ def scrape_nfl_standings():
         print(f"Error fetching URL: {e}")
         return None
     except Exception as e:
-        print(f"An error occurred during scraping: {e}")
+        print(f"An error occurred: {e}")
         return None
 
-# Define an API endpoint that will trigger the scraper
-@app.route('/api/nfl-standings')
-def get_standings():
-    data = scrape_nfl_standings()
-    if data:
-        # Return the scraped data as a JSON response
-        return jsonify(data)
-    else:
-        # Return an error message if scraping fails
-        return jsonify({"error": "Failed to scrape data"}), 500
-
-# This allows the script to be run directly
 if __name__ == "__main__":
-    # Runs the server on http://127.0.0.1:5000
-    app.run(debug=True)
+    scraped_data = scrape_nfl_standings()
+    
+    if scraped_data:
+        # Save the data to a file named 'standings.json'
+        with open('standings.json', 'w') as f:
+            json.dump(scraped_data, f, indent=4)
+        print("Successfully scraped data and saved to standings.json")
+    else:
+        print("Failed to scrape data.")
