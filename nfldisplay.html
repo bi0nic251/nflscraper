@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live NFL Rankings</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; color: #1c1e21; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #0d47a1; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .rankings-container { margin-top: 20px; }
+        .ranking-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .ranking-item:last-child { border-bottom: none; }
+        .team-name { font-weight: bold; flex-grow: 1; }
+        .record { color: #777; }
+        .error { color: #e53935; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Live NFL Rankings</h1>
+        <div id="rankings-section">
+            <h2>AFC Standings</h2>
+            <div id="afc-rankings-container" class="rankings-container"></div>
+            <h2>NFC Standings</h2>
+            <div id="nfc-rankings-container" class="rankings-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // API endpoint of the local Python server
+        const API_URL = 'http://127.0.0.1:5000/api/nfl-standings';
+
+        function displayRankings(rankings, conferenceId) {
+            const container = document.getElementById(conferenceId);
+            container.innerHTML = ''; // Clear previous content
+
+            if (!rankings || rankings.length === 0) {
+                container.innerHTML = '<p>No data available.</p>';
+                return;
+            }
+
+            rankings.forEach(teamData => {
+                const item = document.createElement('div');
+                item.className = 'ranking-item';
+                item.innerHTML = `
+                    <span class="team-name">${teamData.team}</span>
+                    <span class="record">${teamData.record}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function displayError(message) {
+            const container = document.getElementById('rankings-section');
+            container.innerHTML = `<p class="error"><b>Error:</b> ${message}</p>`;
+        }
+
+        // --- Main function to run on page load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch data from the server (status: ${response.status})`);
+                }
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                displayRankings(data.AFC, 'afc-rankings-container');
+                displayRankings(data.NFC, 'nfc-rankings-container');
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                displayError('Could not connect to the local scraper API. Please ensure the Python script is running.');
+            }
+        });
+    </script>
+
+</body>
+</html>
