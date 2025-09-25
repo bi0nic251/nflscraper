@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live NFL Rankings</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; color: #1c1e21; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #0d47a1; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .rankings-container { margin-top: 20px; }
+        .ranking-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .team-name { font-weight: bold; flex-grow: 1; }
+        .record { color: #777; }
+        .error { color: #e53935; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Live NFL Rankings</h1>
+        <div id="rankings-section">
+            <h2>AFC Standings</h2>
+            <div id="afc-rankings-container" class="rankings-container"><p>Loading...</p></div>
+            <h2>NFC Standings</h2>
+            <div id="nfc-rankings-container" class="rankings-container"><p>Loading...</p></div>
+        </div>
+    </div>
+
+    <script>
+        // The path to the local JSON file
+        const DATA_URL = 'standings.json';
+
+        function displayRankings(rankings, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = ''; // Clear loading message
+
+            if (!rankings || rankings.length === 0) {
+                container.innerHTML = '<p>No data available.</p>';
+                return;
+            }
+
+            rankings.forEach(teamData => {
+                const item = document.createElement('div');
+                item.className = 'ranking-item';
+                item.innerHTML = `
+                    <span class="team-name">${teamData.team}</span>
+                    <span class="record">${teamData.record}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        // Main function to fetch and display data
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Add a cache-busting query parameter to get the latest version
+                const response = await fetch(`${DATA_URL}?t=${new Date().getTime()}`);
+                if (!response.ok) {
+                    throw new Error(`Data file not found or failed to load (status: ${response.status})`);
+                }
+                const data = await response.json();
+
+                displayRankings(data.AFC, 'afc-rankings-container');
+                displayRankings(data.NFC, 'nfc-rankings-container');
+
+            } catch (error) {
+                console.error('Error:', error);
+                const container = document.getElementById('rankings-section');
+                container.innerHTML = `<p class="error"><b>Error:</b> Could not load standings data. The file may not exist yet.</p>`;
+            }
+        });
+    </script>
+
+</body>
+</html>
